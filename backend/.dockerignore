@@ -1,0 +1,26 @@
+# Mantiene el contexto de build pequeño y evita que secretos o artefactos
+# locales entren en las capas de la imagen.
+.git
+.gitignore
+.gitattributes
+.editorconfig
+.env
+.env.*
+!.env.example
+.phpunit.result.cache
+Dockerfile
+.dockerignore
+README.md
+node_modules
+vendor
+package.json
+vite.config.js
+tests
+phpunit.xml
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/api-docs
+bootstrap/cache/*.php
+database/*.sqlite
