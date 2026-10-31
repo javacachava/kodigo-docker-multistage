@@ -1,0 +1,105 @@
+name: kodigo-ecommerce
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      target: runner
+    image: kodigo-ecommerce-frontend:local
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      # Dentro de la red de Docker el frontend habla con Nginx por su nombre de servicio.
+      API_BASE_URL: http://nginx:8000/api
+    depends_on:
+      nginx:
+        condition: service_healthy
+    networks: [app]
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+  nginx:
+    build:
+      context: ./backend
+      target: web
+    image: kodigo-ecommerce-nginx:local
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks: [app]
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+  backend:
+    build:
+      context: ./backend
+      target: app
+    image: kodigo-ecommerce-backend:local
+    environment:
+      APP_NAME: ${APP_NAME:-Ecommerce API}
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_URL: ${APP_URL:-http://localhost:8000}
+      APP_KEY: ${APP_KEY:?Define APP_KEY en .env (ver .env.example)}
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: ${LOG_LEVEL:-warning}
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: ${MYSQL_DATABASE:?Define MYSQL_DATABASE en .env}
+      DB_USERNAME: ${MYSQL_USER:?Define MYSQL_USER en .env}
+      DB_PASSWORD: ${MYSQL_PASSWORD:?Define MYSQL_PASSWORD en .env}
+      AUTH_GUARD: api
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en .env (ver .env.example)}
+      JWT_TTL: ${JWT_TTL:-60}
+      STRIPE_KEY: ${STRIPE_KEY:-}
+      STRIPE_SECRET: ${STRIPE_SECRET:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_CURRENCY: ${STRIPE_CURRENCY:-usd}
+      L5_SWAGGER_CONST_HOST: ${APP_URL:-http://localhost:8000}
+      L5_SWAGGER_GENERATE_ALWAYS: "false"
+      SESSION_DRIVER: array
+      CACHE_STORE: array
+      QUEUE_CONNECTION: sync
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
+      RUN_SEEDERS: ${RUN_SEEDERS:-false}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks: [app, data]
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+  mysql:
+    image: mysql:${MYSQL_VERSION:-8.0}
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Define MYSQL_ROOT_PASSWORD en .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?Define MYSQL_DATABASE en .env}
+      MYSQL_USER: ${MYSQL_USER:?Define MYSQL_USER en .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Define MYSQL_PASSWORD en .env}
+    # Sin `ports`: 3306 solo es alcanzable desde la red `data` (el backend).
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks: [data]
+    restart: unless-stopped
+
+networks:
+  # app: tráfico HTTP entre frontend, Nginx y PHP-FPM.
+  app:
+  # data: aislada para MySQL; solo el backend pertenece a ambas redes.
+  data:
+
+volumes:
+  mysql_data:
