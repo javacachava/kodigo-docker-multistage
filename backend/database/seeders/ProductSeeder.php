@@ -37,7 +37,10 @@ class ProductSeeder extends Seeder
             );
         }
 
-        // Algunos productos extra generados aleatoriamente.
-        Product::factory()->count(7)->create();
+        // Algunos productos extra generados aleatoriamente. Faker es una
+        // dependencia de desarrollo: en la imagen de producción se omiten.
+        if (class_exists(\Faker\Generator::class)) {
+            Product::factory()->count(7)->create();
+        }
     }
 }

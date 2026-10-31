@@ -30,7 +30,10 @@ class UserSeeder extends Seeder
             ]
         );
 
-        // Clientes adicionales de relleno.
-        User::factory()->count(5)->create();
+        // Clientes adicionales de relleno. Faker es una dependencia de desarrollo:
+        // en la imagen de producción (composer --no-dev) se omite este relleno.
+        if (class_exists(\Faker\Generator::class)) {
+            User::factory()->count(5)->create();
+        }
     }
 }
