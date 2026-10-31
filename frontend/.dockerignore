@@ -1,0 +1,17 @@
+# Mantiene el contexto de build pequeño y evita que secretos o artefactos
+# locales entren en las capas de la imagen.
+.git
+.gitignore
+.env
+.env.*
+Dockerfile
+.dockerignore
+README.md
+node_modules
+.next
+out
+build
+coverage
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
